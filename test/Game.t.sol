@@ -49,4 +49,45 @@ contract GameTest is Test {
         vm.expectRevert("Already marked");
         game.markSpace(0, "O");
     }
+
+    function test_check_for_winner_row() public {
+        game.markSpace(0, "X");
+        game.markSpace(1, "X");
+        game.markSpace(2, "X");
+
+        assertEq(game.winner(), "X");
+    }
+
+    function test_check_for_winner_col() public {
+        game.markSpace(0, "O");
+        game.markSpace(3, "O");
+        game.markSpace(6, "O");
+
+        assertEq(game.winner(), "O");
+    }
+
+    function test_check_for_winner_diag1() public {
+        game.markSpace(0, "X");
+        game.markSpace(4, "X");
+        game.markSpace(8, "X");
+
+        assertEq(game.winner(), "X");
+    }
+
+    function test_check_for_winner_diag2() public {
+        game.markSpace(6, "O");
+        game.markSpace(4, "O");
+        game.markSpace(2, "O");
+
+        assertEq(game.winner(), "O");
+    }
+
+    function test_cannot_mark_space_once_game_is_over() public {
+        game.markSpace(0, "X");
+        game.markSpace(1, "X");
+        game.markSpace(2, "X");
+
+        vm.expectRevert("Someone has won");
+        game.markSpace(3, "O");
+    }
 }
