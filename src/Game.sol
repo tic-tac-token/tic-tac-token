@@ -3,18 +3,37 @@ pragma solidity ^0.8.13;
 
 contract Game {
     bytes1[9] public board;
+    address public playerX;
+    address public playerO;
 
-    function markSpace(uint256 space, bytes1 value) public {
+    uint256 public turns;
+
+    constructor(address _playerX, address _playerO) {
+        playerX = _playerX;
+        playerO = _playerO;
+    }
+
+    modifier onlyPlayer() {
+        require(msg.sender == playerX || msg.sender == playerO, "Unauthorized");
+        _;
+    }
+
+    function markSpace(uint256 space) public onlyPlayer {
         require(space < 9, "Invalid space");
-        require(value == "X" || value == "O", "Invalid marker");
         require(board[space] == "", "Already marked");
         require(winner() == "", "Someone has won");
+        require(msg.sender == _currentTurn(), "Not your turn");
 
-        // TODO:
-        // - Alternate turns
-        // - Track player X and player O address
+        board[space] = _currentMarker();
+        ++turns;
+    }
 
-        board[space] = value;
+    function _currentTurn() internal  returns (address) {
+        return (turns % 2 == 0) ? playerX : playerO;
+    }
+
+    function _currentMarker() internal returns (bytes1) {
+        return (_currentTurn() == playerX) ? bytes1("X") : bytes1("O");
     }
 
     // 0 | 1 | 2
@@ -31,7 +50,6 @@ contract Game {
             [0, 4, 8], // diag 1 t2b
             [6, 4, 2] // diag 2 b2t
         ];
-        bytes1 winner = "";
         for (uint256 i; i < wins.length; ++i) {
             uint8[3] memory win = wins[i];
             uint8 idx1 = win[0];
@@ -41,6 +59,6 @@ contract Game {
                 return board[idx1];
             }
         }
-        return winner;
+        return "";
     }
 }
