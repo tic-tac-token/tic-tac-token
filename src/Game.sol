@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-contract Game {
+import "openzeppelin-contracts/token/ERC20/ERC20.sol";
+
+contract Game is ERC20 {
     bytes1[9] public board;
     address public playerX;
     address public playerO;
 
     uint256 public turns;
 
-    constructor(address _playerX, address _playerO) {
+    constructor(address _playerX, address _playerO) ERC20("Tic Tac Token", "TTT") {
         playerX = _playerX;
         playerO = _playerO;
     }
@@ -25,7 +27,16 @@ contract Game {
         require(msg.sender == _currentTurn(), "Not your turn");
 
         board[space] = _currentMarker();
+        if (winner() != "") {
+            _mint(_currentTurn(), 100);
+        }
         ++turns;
+    }
+
+    function restart() external onlyPlayer {
+        require(winner() != "" || turns == 9, "Game in progress");
+        delete board;
+        delete turns;
     }
 
     function _currentTurn() internal  returns (address) {
@@ -36,9 +47,9 @@ contract Game {
         return (_currentTurn() == playerX) ? bytes1("X") : bytes1("O");
     }
 
-    // 0 | 1 | 2
-    // 3 | 4 | 5
-    // 6 | 7 | 8
+    // x | o | o
+    // o | x | x
+    // 6 | x | o
     function winner() public view returns (bytes1) {
         uint8[3][8] memory wins = [
             [0, 1, 2], // row 1

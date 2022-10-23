@@ -181,4 +181,285 @@ contract GameTest is Test {
         vm.expectRevert("Not your turn");
         game.markSpace(2);
     }
+
+    function test_game_tracks_player_balances() public {
+        assertEq(game.balanceOf(playerX), 0);
+        assertEq(game.balanceOf(playerO), 0);
+    }
+
+    function test_token_has_name() public {
+        assertEq(game.name(), "Tic Tac Token");
+    }
+
+    function test_token_has_symbol() public {
+        assertEq(game.symbol(), "TTT");
+    }
+
+    function test_game_awards_points_to_X() public {
+        vm.prank(playerX);
+        game.markSpace(6);
+
+        vm.prank(playerO);
+        game.markSpace(0);
+
+        vm.prank(playerX);
+        game.markSpace(4);
+
+        vm.prank(playerO);
+        game.markSpace(1);
+
+        vm.prank(playerX);
+        game.markSpace(2);
+
+        assertEq(game.winner(), "X");
+        assertEq(game.balanceOf(playerX), 100);
+        assertEq(game.balanceOf(playerO), 0);
+    }
+
+    function test_game_awards_points_to_O() public {
+        vm.prank(playerX);
+        game.markSpace(6);
+
+        vm.prank(playerO);
+        game.markSpace(0);
+
+        vm.prank(playerX);
+        game.markSpace(8);
+
+        vm.prank(playerO);
+        game.markSpace(1);
+
+        vm.prank(playerX);
+        game.markSpace(4);
+
+        vm.prank(playerO);
+        game.markSpace(5);
+
+        vm.prank(playerX);
+        game.markSpace(3);
+
+        vm.prank(playerO);
+        game.markSpace(2);
+
+        assertEq(game.winner(), "O");
+        assertEq(game.balanceOf(playerX), 0);
+        assertEq(game.balanceOf(playerO), 100);
+    }
+
+    function test_cannot_mark_space_after_win() public {
+        vm.prank(playerX);
+        game.markSpace(6);
+
+        vm.prank(playerO);
+        game.markSpace(0);
+
+        vm.prank(playerX);
+        game.markSpace(4);
+
+        vm.prank(playerO);
+        game.markSpace(1);
+
+        vm.prank(playerX);
+        game.markSpace(2);
+
+        vm.prank(playerX);
+        vm.expectRevert("Someone has won");
+        game.markSpace(8);
+    }
+
+    function test_restart_game() public {
+        vm.prank(playerX);
+        game.markSpace(6);
+
+        vm.prank(playerO);
+        game.markSpace(0);
+
+        vm.prank(playerX);
+        game.markSpace(4);
+
+        vm.prank(playerO);
+        game.markSpace(1);
+
+        vm.prank(playerX);
+        game.markSpace(2);
+
+        vm.prank(playerX);
+        game.restart();
+
+        // Winner is now empty
+        assertEq(game.winner(), "");
+
+        // Board is cleared
+        for (uint256 i; i < 9; ++i) {
+            bytes1 space = game.board(i);
+            assertEq(space, "");
+        }
+
+        // Same players
+        assertEq(game.playerX(), playerX);
+        assertEq(game.playerO(), playerO);
+
+        // Turns reset
+        assertEq(game.turns(), 0);
+    }
+
+    function test_restart_reverts_if_game_in_progress() public {
+        vm.expectRevert("Game in progress");
+        vm.prank(playerX);
+        game.restart();
+    }
+
+    function test_can_restart_in_case_of_draw() public {
+        vm.prank(playerX);
+        game.markSpace(4);
+
+        vm.prank(playerO);
+        game.markSpace(2);
+
+        vm.prank(playerX);
+        game.markSpace(0);
+
+        vm.prank(playerO);
+        game.markSpace(8);
+
+        vm.prank(playerX);
+        game.markSpace(5);
+
+        vm.expectRevert("Game in progress");
+        vm.prank(playerX);
+        game.restart();
+
+        vm.prank(playerO);
+        game.markSpace(3);
+
+        vm.expectRevert("Game in progress");
+        vm.prank(playerO);
+        game.restart();
+
+        vm.prank(playerX);
+        game.markSpace(7);
+
+        vm.prank(playerO);
+        game.markSpace(1);
+
+        vm.expectRevert("Game in progress");
+        vm.prank(playerO);
+        game.restart();
+
+        vm.prank(playerX);
+        game.markSpace(6);
+
+        assertEq(game.winner(), "");
+
+        // All spaces are filled
+        for (uint256 i; i < 9; ++i) {
+            bytes1 space = game.board(i);
+            assertTrue(space == "X" || space == "O");
+        }
+
+        vm.prank(playerX);
+        game.restart();
+
+        // Winner is now empty
+        assertEq(game.winner(), "");
+
+        // Board is cleared
+        for (uint256 i; i < 9; ++i) {
+            bytes1 space = game.board(i);
+            assertEq(space, "");
+        }
+
+        // Same players
+        assertEq(game.playerX(), playerX);
+        assertEq(game.playerO(), playerO);
+
+        // Turns reset
+        assertEq(game.turns(), 0);
+    }
+
+    function test_multiple_games() public {
+        // Player X win
+        vm.prank(playerX);
+        game.markSpace(6);
+
+        vm.prank(playerO);
+        game.markSpace(0);
+
+        vm.prank(playerX);
+        game.markSpace(4);
+
+        vm.prank(playerO);
+        game.markSpace(1);
+
+        vm.prank(playerX);
+        game.markSpace(2);
+
+        vm.prank(playerO);
+        game.restart();
+
+        assertEq(game.balanceOf(playerX), 100);
+        assertEq(game.balanceOf(playerO), 0);
+
+        // Player O win
+        vm.prank(playerX);
+        game.markSpace(6);
+
+        vm.prank(playerO);
+        game.markSpace(0);
+
+        vm.prank(playerX);
+        game.markSpace(8);
+
+        vm.prank(playerO);
+        game.markSpace(1);
+
+        vm.prank(playerX);
+        game.markSpace(4);
+
+        vm.prank(playerO);
+        game.markSpace(5);
+
+        vm.prank(playerX);
+        game.markSpace(3);
+
+        vm.prank(playerO);
+        game.markSpace(2);
+
+        vm.prank(playerX);
+        game.restart();
+
+        assertEq(game.balanceOf(playerX), 100);
+        assertEq(game.balanceOf(playerO), 100);
+
+        // Play draw
+        vm.prank(playerX);
+        game.markSpace(4);
+
+        vm.prank(playerO);
+        game.markSpace(2);
+
+        vm.prank(playerX);
+        game.markSpace(0);
+
+        vm.prank(playerO);
+        game.markSpace(8);
+
+        vm.prank(playerX);
+        game.markSpace(5);
+
+        vm.prank(playerO);
+        game.markSpace(3);
+
+        vm.prank(playerX);
+        game.markSpace(7);
+
+        vm.prank(playerO);
+        game.markSpace(1);
+
+        vm.prank(playerX);
+        game.markSpace(6);
+
+        assertEq(game.balanceOf(playerX), 100);
+        assertEq(game.balanceOf(playerO), 100);
+    }
 }
